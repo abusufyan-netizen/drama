@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C-Drama Vault & Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090b10;
+      --bg-card: #131722;
+      --accent: #d4af37;
+      --accent-glow: rgba(212, 175, 55, 0.25);
+      --text-main: #f0f3f8;
+      --text-muted: #9aa2b5;
+      --border: rgba(255, 255, 255, 0.08);
+      --watched-badge: #10b981;
+      --unwatched-badge: #6366f1;
+      --hold-badge: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 11, 16, 0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-family: 'Cinzel', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-stats {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #d4af37, #aa820a);
+      color: #0b0c10;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 540px;
+      padding: 2rem;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+    }
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      color: var(--accent);
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .modal-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.2rem;
+    }
+    .input-field {
+      width: 100%;
+      background: #0d1017;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      outline: none;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .modal-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.8rem;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* Carousel */
+    .carousel-section {
+      position: relative;
+      width: 100%;
+      height: 460px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    .carousel-track { position: relative; width: 100%; height: 100%; }
+    .carousel-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease-in-out, visibility 0.8s;
+      background-size: cover;
+      background-position: center 25%;
+      display: flex;
+      align-items: flex-end;
+    }
+    .carousel-slide.active { opacity: 1; visibility: visible; }
+    .carousel-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, var(--bg-dark) 10%, rgba(9, 11, 16, 0.4) 60%, transparent 100%);
+    }
+    .carousel-content {
+      position: relative;
+      z-index: 2;
+      max-width: 850px;
+      padding: 3rem 2.5rem;
+    }
+    .carousel-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .carousel-title {
+      font-family: 'Cinzel', serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+    .carousel-desc {
+      color: #d1d5db;
+      font-size: 0.95rem;
+      margin-bottom: 1.2rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .carousel-arrows {
+      position: absolute;
+      right: 2rem;
+      bottom: 2rem;
+      z-index: 3;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .carousel-btn {
+      background: rgba(19, 23, 34, 0.7);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .carousel-btn:hover { background: var(--accent); color: #000; }
+
+    /* Main Container */
+    main { max-width: 1280px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 280px;
+      max-width: 480px;
+    }
+    .search-box input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .search-box input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute;
+      left: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+    .filter-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .pill-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.5rem 1.1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .pill-btn.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Grid */
+    .drama-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.6rem;
+    }
+    .drama-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, border-color 0.25s;
+    }
+    .drama-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+    .card-thumb-wrapper {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      background: #191f2c;
+    }
+    .card-thumb { width: 100%; height: 100%; object-fit: cover; }
+    .status-badge {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.8rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.3rem 0.65rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .status-badge.watched { background: var(--watched-badge); color: #fff; }
+    .status-badge.unwatched { background: var(--unwatched-badge); color: #fff; }
+    .status-badge.on-hold { background: var(--hold-badge); color: #fff; }
+
+    .card-body { padding: 1.1rem; flex: 1; display: flex; flex-direction: column; }
+    .card-title { font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .card-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.8rem; }
+    .card-dynamic {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      flex: 1;
+    }
+    .card-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Detail View */
+    .detail-view { display: none; max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    .detail-view.active { display: block; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 2.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+    }
+    .detail-poster { width: 100%; border-radius: 10px; object-fit: cover; }
+    .detail-title { font-family: 'Cinzel', serif; font-size: 2.2rem; color: var(--accent); margin-bottom: 0.4rem; }
+    .detail-section { margin-top: 1.2rem; }
+    .detail-section-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--accent); margin-bottom: 0.2rem; }
+    .detail-section-content { color: #d1d5db; font-size: 0.95rem; }
+
+    @media (max-width: 860px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .carousel-section { height: 380px; }
+      .carousel-title { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand" onclick="navigateToHome()"><span>✦</span> C-Drama Archive</div>
+    <div class="header-actions">
+      <button class="btn-gold" onclick="openAddModal()">+ Auto-Add by Link/Title</button>
+      <div class="nav-stats" id="vault-stats"></div>
+    </div>
+  </header>
+
+  <!-- Auto Add Modal -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal-content">
+      <h2 class="modal-title">Auto-Add C-Drama</h2>
+      <p class="modal-desc">Paste a TMDB series link (e.g. <code>https://www.themoviedb.org/tv/197171</code>) or just type the exact English or Chinese drama title.</p>
+      
+      <input type="text" id="dramaInput" class="input-field" placeholder="Paste link or title (e.g., The Double, 197171, or URL)" />
+      
+      <div style="display:flex; gap:0.5rem; margin-bottom: 1rem;">
+        <select id="statusSelect" class="input-field" style="margin-bottom:0;">
+          <option value="unwatched">Watchlist (Unwatched)</option>
+          <option value="watched">Already Watched</option>
+          <option value="on-hold">On Hold</option>
+        </select>
+      </div>
+
+      <input type="text" id="customDynamic" class="input-field" placeholder="Optional: Note the Lead Dynamic (e.g., Ruthless Duke x Smart FL)" />
+
+      <div class="modal-btns">
+        <button class="btn-ghost" onclick="closeAddModal()">Cancel</button>
+        <button class="btn-gold" id="fetchBtn" onclick="autoFetchAndAddDrama()">Auto Fetch & Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME VIEW -->
+  <div id="home-view">
+    <section class="carousel-section">
+      <div class="carousel-track" id="carousel-track"></div>
+      <div class="carousel-arrows">
+        <button class="carousel-btn" onclick="prevSlide()">&#10094;</button>
+        <button class="carousel-btn" onclick="nextSlide()">&#10095;</button>
+      </div>
+    </section>
+
+    <main>
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search title, tropes, dynamics..." oninput="renderGrid()" />
+        </div>
+        <div class="filter-pills">
+          <button class="pill-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="pill-btn" data-filter="unwatched" onclick="setFilter('unwatched')">Unwatched</button>
+          <button class="pill-btn" data-filter="watched" onclick="setFilter('watched')">Watched</button>
+          <button class="pill-btn" data-filter="on-hold" onclick="setFilter('on-hold')">On Hold</button>
+        </div>
+      </div>
+      <div class="drama-grid" id="dramaGrid"></div>
+    </main>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detail-view" class="detail-view">
+    <button class="btn-ghost" style="margin-bottom: 1.5rem;" onclick="navigateToHome()">← Back to Library</button>
+    <div class="detail-grid" id="detailContainer"></div>
+  </div>
+
+  <script>
+    // TMDB Public Read API Access Key (Public Read Token for automatic fetching)
+    const TMDB_KEY = "3b08e2f89f7f45778a78e71dfda498a4";
+
+    // Initial Database (Saved to LocalStorage automatically)
+    const defaultDramas = [
+      {
+        id: "a-dream-of-splendor",
+        title: "A Dream of Splendor",
+        altTitle: "Meng Hua Lu (梦华录)",
+        status: "unwatched",
+        episodes: 40,
+        year: 2022,
+        banner: "https://image.tmdb.org/t/p/w1280/lG66vN3yB1R7eR5o7vF0kXn2d6A.jpg",
+        poster: "https://image.tmdb.org/t/p/w780/mJ6H5tOa7Fh4Y5yU9Y6u7t3mPqZ.jpg",
+        dynamic: "Mature slow-burn romance, authentic Song aesthetics, high agency, zero toxic sisterhood.",
+        synopsis: "Zhao Pan'er journeys to the capital after being cast aside by her fiancé. Alongside two resilient sisters, she establishes a tea and culinary empire, supported by the feared Gu Qianfan."
+      },
+      {
+        id: "the-imperial-coroner",
+        title: "The Imperial Coroner",
+        altTitle: "Yu Ci Xiao Wu Zuo (御赐小仵作)",
+        status: "unwatched",
+        episodes: 36,
+        year: 2021,
+        banner: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80",
+        poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
+        dynamic: "High-IQ investigative teamwork, sweet mutual respect, zero forced misunderstandings.",
+        synopsis: "Chu Chu comes to the capital to take the imperial coroner exam. Impressed by her forensic deduction, Prince Xiao Jinyu takes her under his wing, shielding her from court prejudices."
+      },
+      {
+        id: "fated-hearts",
+        title: "Fated Hearts",
+        altTitle: "Yi Xiao Sui Ge (一笑随歌)",
+        status: "watched",
+        episodes: 38,
+        year: 2024,
+        banner: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1600&q=80",
+        poster: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&w=600&q=80",
+        dynamic: "Enemies-to-comrades-in-arms, amnesiac archer, lethal archery and sword coordination.",
+        synopsis: "After an arrow duel on the battlefield, both Fu Yixiao and Feng Suige find themselves targeted by conspiracies. They coordinate moves to dismantle the Xia court traitors."
+      }
+    ];
+
+    // Load from LocalStorage or seed defaults
+    let dramaList = JSON.parse(localStorage.getItem('user_cdramas')) || defaultDramas;
+
+    function saveDramas() {
+      localStorage.setItem('user_cdramas', JSON.stringify(dramaList));
+      initCarousel();
+      renderGrid();
+    }
+
+    // Modal Control
+    function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+    function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+
+    // AUTO-FETCH FROM LINK OR TITLE
+    async function autoFetchAndAddDrama() {
+      const input = document.getElementById('dramaInput').value.trim();
+      const status = document.getElementById('statusSelect').value;
+      const customDynamic = document.getElementById('customDynamic').value.trim();
+      const fetchBtn = document.getElementById('fetchBtn');
+
+      if (!input) {
+        alert("Please enter a link, TMDB ID, or title.");
+        return;
+      }
+
+      fetchBtn.textContent = "Fetching...";
+      fetchBtn.disabled = true;
+
+      try {
+        let tmdbId = null;
+
+        // Check if input is a URL (e.g. https://www.themoviedb.org/tv/197171-the-double)
+        const urlMatch = input.match(/\/tv\/(\d+)/);
+        if (urlMatch) {
+          tmdbId = urlMatch[1];
+        } else if (/^\d+$/.test(input)) {
+          tmdbId = input;
+        } else {
+          // Otherwise, search by name via TMDB API
+          const searchRes = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(input)}`);
+          const searchData = await searchRes.json();
+          if (searchData.results && searchData.results.length > 0) {
+            tmdbId = searchData.results[0].id;
+          }
+        }
+
+        if (!tmdbId) {
+          alert("Could not find this drama on TMDB. Please check the spelling or link.");
+          fetchBtn.textContent = "Auto Fetch & Add";
+          fetchBtn.disabled = false;
+          return;
+        }
+
+        // Fetch complete show details
+        const detailRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}`);
+        const show = await detailRes.json();
+
+        const newDrama = {
+          id: show.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          title: show.name,
+          altTitle: show.original_name || show.name,
+          status: status,
+          episodes: show.number_of_episodes || "Ongoing",
+          year: show.first_air_date ? show.first_air_date.split('-')[0] : "N/A",
+          banner: show.backdrop_path 
+            ? `https://image.tmdb.org/t/p/w1280${show.backdrop_path}` 
+            : "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1600&q=80",
+          poster: show.poster_path 
+            ? `https://image.tmdb.org/t/p/w780${show.poster_path}` 
+            : "https://images.unsplash.com/photo-1576085898323-218337e3e43c?auto=format&fit=crop&w=600&q=80",
+          dynamic: customDynamic || `Genres: ${show.genres.map(g => g.name).join(', ')}`,
+          synopsis: show.overview || "No synopsis available."
+        };
+
+        // Add to list and save
+        dramaList.unshift(newDrama);
+        saveDramas();
+        closeAddModal();
+        document.getElementById('dramaInput').value = '';
+        document.getElementById('customDynamic').value = '';
+        alert(`Successfully added "${newDrama.title}"!`);
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to fetch drama details. Make sure your internet connection is active.");
+      } finally {
+        fetchBtn.textContent = "Auto Fetch & Add";
+        fetchBtn.disabled = false;
+      }
+    }
+
+    // Carousel & Grid Logic
+    let currentFilter = 'all';
+    let currentSlide = 0;
+    let carouselInterval = null;
+
+    function initCarousel() {
+      const track = document.getElementById('carousel-track');
+      track.innerHTML = '';
+      const featured = dramaList.slice(0, 5);
+
+      featured.forEach((drama, index) => {
+        const slide = document.createElement('div');
+        slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
+        slide.style.backgroundImage = `url('${drama.banner}')`;
+        slide.innerHTML = `
+          <div class="carousel-overlay"></div>
+          <div class="carousel-content">
+            <span class="carousel-tag">${drama.status.toUpperCase()} • ${drama.episodes} EPS (${drama.year})</span>
+            <h1 class="carousel-title">${drama.title}</h1>
+            <p class="carousel-desc">${drama.synopsis}</p>
+            <button class="btn-gold" onclick="navigateToDetail('${drama.id}')">Explore Details →</button>
+          </div>
+        `;
+        track.appendChild(slide);
+     });
+      startCarouselTimer();
+    }
+
+    function showSlide(index) {
+      const slides = document.querySelectorAll('.carousel-slide');
+      if (!slides.length) return;
+      slides.forEach(s => s.classList.remove('active'));
+      currentSlide = (index + slides.length) % slides.length;
+      slides[currentSlide].classList.add('active');
+    }
+
+    function nextSlide() { showSlide(currentSlide + 1); resetCarouselTimer(); }
+    function prevSlide() { showSlide(currentSlide - 1); resetCarouselTimer(); }
+
+    function startCarouselTimer() {
+      if (carouselInterval) clearInterval(carouselInterval);
+      carouselInterval = setInterval(() => showSlide(currentSlide + 1), 6000);
+    }
+    function resetCarouselTimer() { clearInterval(carouselInterval); startCarouselTimer(); }
+
+    function renderGrid() {
+      const grid = document.getElementById('dramaGrid');
+      const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+
+      const filtered = dramaList.filter(drama => {
+        const matchesFilter = (currentFilter === 'all') || (drama.status === currentFilter);
+        const matchesSearch = 
+          drama.title.toLowerCase().includes(searchVal) ||
+          drama.altTitle.toLowerCase().includes(searchVal) ||
+          drama.dynamic.toLowerCase().includes(searchVal);
+        return matchesFilter && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted)">No dramas found.</div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(drama => `
+        <div class="drama-card" onclick="navigateToDetail('${drama.id}')">
+          <div class="card-thumb-wrapper">
+            <img class="card-thumb" src="${drama.poster}" alt="${drama.title}" loading="lazy" />
+            <span class="status-badge ${drama.status}">${drama.status.replace('-', ' ')}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${drama.title}</div>
+            <div class="card-sub">${drama.altTitle}</div>
+            <div class="card-dynamic">${drama.dynamic}</div>
+            <div class="card-footer">
+              <span>${drama.episodes} Episodes</span>
+              <span>${drama.year}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('vault-stats').textContent = 
+        `${dramaList.length} Dramas (${dramaList.filter(d => d.status === 'watched').length} Watched)`;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+      renderGrid();
+    }
+
+    function navigateToDetail(id) { window.location.hash = `drama/${id}`; }
+    function navigateToHome() { window.location.hash = ''; }
+
+    function renderDetail(id) {
+      const drama = dramaList.find(d => d.id === id);
+      if (!drama) return navigateToHome();
+
+      document.getElementById('home-view').style.display = 'none';
+      const detailView = document.getElementById('detail-view');
+      detailView.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      document.getElementById('detailContainer').innerHTML = `
+        <div>
+          <img class="detail-poster" src="${drama.poster}" alt="${drama.title}" />
+        </div>
+        <div>
+          <h1 class="detail-title">${drama.title}</h1>
+          <div style="color:var(--text-muted); margin-bottom:1rem;">${drama.altTitle} • ${drama.episodes} Episodes (${drama.year})</div>
+          
+          <div class="detail-section">
+            <div class="detail-section-title">Status</div>
+            <div><span class="status-badge ${drama.status}" style="position:static;">${drama.status.toUpperCase()}</span></div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">Lead Dynamic & Tropes</div>
+            <div class="detail-section-content">${drama.dynamic}</div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">Synopsis</div>
+            <div class="detail-section-content">${drama.synopsis}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function checkRoute() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#drama/')) {
+        renderDetail(hash.replace('#drama/', ''));
+      } else {
+        document.getElementById('home-view').style.display = 'block';
+        document.getElementById('detail-view').classList.remove('active');
+      }
+    }
+
+    window.addEventListener('hashchange', checkRoute);
+    window.addEventListener('DOMContentLoaded', () => {
+      initCarousel();
+      renderGrid();
+      checkRoute();
+    });
+  </script>
+</body>
+</html>
